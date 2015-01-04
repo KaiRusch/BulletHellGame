@@ -315,17 +315,17 @@ public:
             return inRange;
         }
 
-        if(northWest == NULL)
-        {
-            return inRange;
-        }
-
         for(int i = 0; i < contents.size(); ++i)
         {
             if(aabb_intersect(contents[i],range))
             {
                 inRange.push_back(contents[i]);
             }
+        }
+
+        if(northWest == NULL)
+        {
+            return inRange;
         }
 
         std::vector<AABB*> northEastInRange = northEast->query_range(range);
@@ -342,8 +342,6 @@ public:
     }
 
 };
-
-
 
 
 void create_curved_bullets(vec2d center, float angle, float width, float speed)
@@ -397,6 +395,13 @@ public:
                 case SDLK_RIGHT: right = true; break;
                 case SDLK_UP: up = true; break;
                 case SDLK_DOWN: down = true; break;
+                case SDLK_SPACE:
+                    for(int i = 0; i < 100; i++)
+                    {
+                        float angle = 2*M_PI/100.0f*(float)i;
+                        bullets.push_back(new Bullet(this->position + vec2d(50.0f*cosf(angle),50.0f*sinf(angle)),vec2d(5.0f,5.0f),100.0f,angle));
+                    }
+                break;
             }
         }
         if(event->type == SDL_KEYUP)
@@ -417,13 +422,13 @@ public:
         (
         (this->position.x-A->position.x)*(this->position.x-A->position.x)
          +(this->position.y-A->position.y)*(this->position.y-A->position.y)
-        < (this->dimensions.x*this->dimensions.x)+(A->dimensions.x*A->dimensions.x))
+        < (this->dimensions.x+ A->dimensions.x)*(this->dimensions.x+ A->dimensions.x))
         {
             return true;
         }
 
         return false;
-    create_curved_bullets(vec2d(SCREEN_WIDTH/2.0f,0.0f),M_PI/2.0f,100.0f,50.0f);}
+    }
 
     void update(float dt)
     {
@@ -495,12 +500,14 @@ void update(float dt)
 
     player.update(dt);
 
-    AABB range(player.position,4*player.dimensions);
+    AABB range(player.position,4.0f*player.dimensions);
 
     std::vector<AABB*> inRange = quadtree.query_range(&range);
 
+
     for(int i = 0; i < inRange.size(); ++i)
     {
+
         if(player.check_collision(inRange[i]))
         {
             quitGame = true;
@@ -541,7 +548,7 @@ int main(int argc, char *argv[])
         return -1;
     }
     //Create and use shader program
-    program = create_program("Shaders/vertex.glsl","Shaders/fragment.glsl");
+    program = create_program("Source/Shaders/vertex.glsl","Source/Shaders/fragment.glsl");
     glUseProgram(program);
 
     GLuint vertexArrayID, vertexBufferID, elementBufferID;
@@ -573,21 +580,19 @@ int main(int argc, char *argv[])
 
         delay += dt;
         tFrames += dt;
-        frames++;
 
-        if(dt<= 0.01f)
+        if(dt<= 0.1f)
         {
+            frames++;
+
+
             handle_events(&windowEvent);
 
-            if(delay >= 0.01)
+            if(delay >= 0.4)
             {
-                bullets.push_back(new Bullet(vec2d((float)SCREEN_WIDTH/2.0f+100*cosf(2*time),(float)SCREEN_HEIGHT/2.0f+100*sinf(2*time)),vec2d(5.0f,5.0f),100.0f,-10*time));
-                bullets.push_back(new Bullet(vec2d((float)SCREEN_WIDTH/2.0f-100*cosf(2*time),(float)SCREEN_HEIGHT/2.0f+100*sinf(2*time)),vec2d(5.0f,5.0f),100.0f,10*time));
-                bullets.push_back(new Bullet(vec2d((float)SCREEN_WIDTH/2.0f+100*cosf(2*time),(float)SCREEN_HEIGHT/2.0f-100*sinf(2*time)),vec2d(5.0f,5.0f),100.0f,-10*time));
-                bullets.push_back(new Bullet(vec2d((float)SCREEN_WIDTH/2.0f-100*cosf(2*time),(float)SCREEN_HEIGHT/2.0f-100*sinf(2*time)),vec2d(5.0f,5.0f),100.0f,10*time));
+                create_curved_bullets(vec2d((float)SCREEN_WIDTH/2.0f,0.0f),M_PI/2.0f,100.0f,100.0f);
                 delay = 0.0f;
             }
-
 
             update(dt);
 

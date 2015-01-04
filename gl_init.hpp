@@ -3,12 +3,13 @@
 
 #define GLEW_STATIC
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#include <SDL.h>
+#include <SDL_opengl.h>
 #include <cstdio>
 #include <string>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 //The game window
 extern SDL_Window *gameWindow;
