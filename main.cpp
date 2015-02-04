@@ -1,11 +1,6 @@
+#include <SDL.h>
 #include "vec2d.h"
-#include "gl_init.hpp"
-#define GLM_FORCE_RADIANS
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
 #include <vector>
-#include <SOIL.h>
 #include <sstream>
 
 //Quit flag for program
@@ -16,90 +11,6 @@ SDL_Event windowEvent;
 //Dimensions of the game window
 #define SCREEN_WIDTH 500
 #define SCREEN_HEIGHT 500
-
-//ID of the shader program
-GLuint program;
-
-GLuint texture;
-
-//Creates vertex array object, vertex buffer for square and element array buffer
-void create_buffers(GLuint &vertexArrayID, GLuint &vertexBufferID, GLuint &elementBufferID, GLuint programID)
-{
-    //Creates and binds vertex array boject
-    glGenVertexArrays(1, &vertexArrayID);
-    glBindVertexArray(vertexArrayID);
-
-    //Vertex data of square
-    GLfloat vertexData[] = {
-        -0.5f, -0.5f, 0.0f, 0.0f, //Top left
-        0.5f, -0.5f, 1.0f, 0.0f, //Top right
-        0.5f,  0.5f, 1.0f, 1.0f, //Bottom right
-        -0.5f, 0.5f, 0.0f, 1.0f //Bottom left
-    };
-
-    //Creates and binds vertex buffer
-    glGenBuffers(1, &vertexBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexData), vertexData, GL_STATIC_DRAW);
-
-    //Specifies the layout of the vertex data
-    GLint posAttrib = glGetAttribLocation(programID, "pvPosition");
-    glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GLfloat), 0);
-
-    GLint uvAttrib = glGetAttribLocation(programID, "pvUvCoords");
-    glEnableVertexAttribArray(uvAttrib);
-    glVertexAttribPointer(uvAttrib, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GLfloat),(void*)(2*sizeof(GLfloat)));
-
-    //Element indices for square
-    GLuint elements[] =
-    {
-        0,1,2,
-        0,2,3
-    };
-
-    //Creates and binds element buffer
-    glGenBuffers(1,&elementBufferID);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements),elements, GL_STATIC_DRAW);
-}
-
-//Renders square at coordinates
-void render_square(float x, float y, float w, float h, float angle)
-{
-    //Model matrix
-    glm::mat4 model(1.0f);
-
-    //Apply scaling, roatation and translation
-    model =
-    //Translation
-    glm::translate(glm::mat4(1.0f),glm::vec3(x,y,0.0f))*
-    //Rotation
-    glm::rotate(glm::mat4(1.0f),angle,glm::vec3(0.0f,0.0f,1.0f))*
-    //Scale
-    glm::scale(glm::mat4(1.0f),glm::vec3(w,h,1.0f));
-
-    //View matrix
-    glm::mat4 view(1.0f);
-
-    //Projection matrix
-    glm::mat4 proj = glm::ortho(0.0f,(float)SCREEN_WIDTH,(float)SCREEN_HEIGHT,0.0f);
-
-    //Create model view projection matrix
-    glm::mat4 mvp = proj*view*model;
-
-    GLint uniMVP = glGetUniformLocation(program,"mvp");
-
-    glUniformMatrix4fv(uniMVP,1,GL_FALSE,glm::value_ptr(mvp));
-
-    glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,0);
-}
-
-GLuint load_texture(const char* filepath)
-{
-    GLuint textureID = SOIL_load_OGL_texture(filepath,SOIL_LOAD_AUTO,SOIL_CREATE_NEW_ID,SOIL_FLAG_INVERT_Y);
-    return textureID;
-}
 
 //-------------AABB CLASS----------------
 
@@ -119,8 +30,7 @@ public:
     };
 
     virtual void draw()
-    {
-        render_square(position.x,position.y,2*dimensions.x,2*dimensions.y,0);
+    {        
     };
 
 };
@@ -454,86 +364,18 @@ Player player(vec2d(SCREEN_WIDTH/2.0f,SCREEN_HEIGHT-10.0f),vec2d(3.0f,3.0f));
 //-------------------GAME LOOP-------------------------
 
 //Handle input and window events
-void handle_events(SDL_Event *event)
+void handle_events()
 {
-    if(SDL_PollEvent(event))
-    {
-
-        player.handle_events(event);
-
-        if(event->type == SDL_QUIT)
-        {
-            quitGame = true;
-        }
-        if(event->type == SDL_KEYUP)
-        {
-            if(event->key.keysym.sym == SDLK_ESCAPE)
-            {
-                quitGame = true;
-            }
-        }
-    }
 }
 
 //Update game logic
-void update(float dt)
+void update()
 {
-
-    Quadtree quadtree(AABB(vec2d(SCREEN_WIDTH/2.0f,SCREEN_HEIGHT/2.0f),vec2d(SCREEN_WIDTH/2.0f,SCREEN_HEIGHT/2.0f)));
-
-    std::vector<Bullet*> newBullets;
-    for(int i = 0; i < bullets.size(); ++i)
-    {
-        bullets[i]->update(dt);
-        if(bullets[i]->deleteBullet)
-        {
-            delete(bullets[i]);
-        }
-        else
-        {
-            newBullets.push_back(bullets[i]);
-            quadtree.insert(bullets[i]);
-        }
-    }
-
-    bullets = newBullets;
-
-    player.update(dt);
-
-    AABB range(player.position,4.0f*player.dimensions);
-
-    std::vector<AABB*> inRange = quadtree.query_range(&range);
-
-
-    for(int i = 0; i < inRange.size(); ++i)
-    {
-
-        if(player.check_collision(inRange[i]))
-        {
-            quitGame = true;
-        }
-    }
 }
 
 //Render to the screen
 void render()
 {
-
-    //Set clear color
-    glClearColor(0.0f,0.0f,0.0f,1.0f);
-
-    //Clear color buffer with clear color
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    for(int i = 0; i < bullets.size(); ++i)
-    {
-        bullets[i]->draw();
-    }
-
-    player.draw();
-
-    //Draw frame buffer to game window
-    SDL_GL_SwapWindow(gameWindow);
 }
 
 //------------------------MAIN---------------------------
@@ -541,87 +383,28 @@ void render()
 int main(int argc, char *argv[])
 {
 
-    if(!init_gl("The Quest for K",SCREEN_WIDTH,SCREEN_HEIGHT))
+  SDL_Init(SDL_INIT_VIDEO);
+
+  SDL_Window *window = SDL_CreateWindow("The Quest Fork", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_SWSURFACE);
+
+  SDL_Event event;
+
+  bool quit = false;
+  while(!quit)
     {
-        std::printf("Failed to initialize SDL2 and openGL");
-        clean_up();
-        return -1;
-    }
-    //Create and use shader program
-    program = create_program("Source/Shaders/vertex.glsl","Source/Shaders/fragment.glsl");
-    glUseProgram(program);
-
-    GLuint vertexArrayID, vertexBufferID, elementBufferID;
-
-    create_buffers(vertexArrayID, vertexBufferID, elementBufferID, program);
-
-
-    texture = load_texture("Assets/bullet.png");
-
-    float time = 0.0f;
-    float newTime = 0.0f;
-    float dt = 0.0f;
-
-    float delay = 0.0f;
-
-
-    float angle = M_PI;
-
-    int frames = 0;
-    float tFrames = 0.0f;
-
-
-    //Game loop
-    while(!quitGame)
-    {
-        newTime = SDL_GetTicks()/1000.0f;
-        dt = newTime - time;
-        time = newTime;
-
-        delay += dt;
-        tFrames += dt;
-
-        if(dt<= 0.1f)
-        {
-            frames++;
-
-
-            handle_events(&windowEvent);
-
-            if(delay >= 0.4)
-            {
-                create_curved_bullets(vec2d((float)SCREEN_WIDTH/2.0f,0.0f),M_PI/2.0f,100.0f,100.0f);
-                delay = 0.0f;
-            }
-
-            update(dt);
-
-            render();
-
-            if(frames == 60)
-            {
-                 std::stringstream fps;
-                fps << 60.0f/tFrames << " " << bullets.size();
-                SDL_SetWindowTitle(gameWindow,fps.str().c_str());
-                frames = 0;
-                tFrames = 0.0f;
-            }
-
-
-
-        }
+      while(SDL_PollEvent(&event))
+	{
+	  if(event.type == SDL_QUIT)
+	    {
+	      quit = true;
+	    }
+	}
+      handle_events();
+      update();
+      render();
     }
 
-    glDeleteProgram(program);
-    glDeleteBuffers(1,&vertexBufferID);
-    glDeleteBuffers(1,&elementBufferID);
-    glDeleteVertexArrays(1, &vertexArrayID);
+  SDL_Quit();
 
-    for(int i = 0; i < bullets.size(); ++i)
-    {
-        delete(bullets[i]);
-    }
-
-    clean_up();
-    return 0;
+  return 0;
 }
