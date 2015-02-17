@@ -56,6 +56,32 @@ AABB::AABB(vec2d position, vec2d dimensions, vec2d velocity, int sprite) : Entit
 
 bool AABB::check_in_bounds(int screenWidth, int screenHeight)
 {
+  if(position.x + dimensions.x < 0)
+    {
+      return false;
+    }
+  if(position.x - dimensions.x > screenWidth)
+    {
+      return false;
+    }
+  if(position.y + dimensions.y < 0)
+    {
+      return false;
+    }
+  if(position.y - dimensions.y > screenHeight)
+    {
+      return false;
+    }
+  return true;  
+}
+
+Player::Player(vec2d position, vec2d dimensions, int hitRadius, int sprite) : AABB(position,dimensions,vec2d(0,0),sprite)
+{
+  this->hitRadius = hitRadius;
+}
+
+bool Player::check_in_bounds(int screenWidth, int screenHeight)
+{
   if(position.x - dimensions.x < 0)
     {
       position.x = dimensions.x;
@@ -81,13 +107,18 @@ Game::Game()
   gameOver = false;
 }
 
-Entity * spaceShipID;
-bool leftDown = false, rightDown = false, upDown = false, downDown = false;
+bool leftDown, rightDown, upDown, downDown, spaceDown;
+
+
+Entity *player = NULL;
+int bulletSprite;
+float bulletDelay = 0.0f;
 
 //----------------GAME LOOP------------------
 
 void Game::handle_input()
 {
+  SDL_Event event;
   while(SDL_PollEvent(&event))
     {
       if(event.type == SDL_QUIT)
@@ -98,56 +129,45 @@ void Game::handle_input()
 	{
 	  switch(event.key.keysym.sym)
 	    {
-	    case SDLK_LEFT: leftDown = true; break; 
-	    case SDLK_RIGHT: rightDown = true; break; 
-	    case SDLK_UP: upDown = true; break;
-	    case SDLK_DOWN: downDown = true; break;
+	    case SDLK_LEFT: leftDown = true; break;
+	    case SDLK_RIGHT: rightDown = true; break;
+	    case SDLK_SPACE: spaceDown = true; break;
 	    }
 	}
       if(event.type == SDL_KEYUP)
 	{
 	  switch(event.key.keysym.sym)
 	    {
-	    case SDLK_LEFT: leftDown = false; break; 
+	    case SDLK_LEFT: leftDown = false; break;
 	    case SDLK_RIGHT: rightDown = false; break;
-	    case SDLK_UP: upDown = false; break;
-	    case SDLK_DOWN: downDown = false; break;
+	    case SDLK_SPACE: spaceDown = false; break;
 	    }
 	}
     }
 
-  spaceShipID->velocity = vec2d(0,0);
-
+  player->velocity = vec2d(0,0);
   if(leftDown)
     {
-      spaceShipID->velocity.x += -100;
+      player->velocity.x -= 100.0f;
     }
   if(rightDown)
     {
-      spaceShipID->velocity.x += 100;
+      player->velocity.x += 100.0f;
     }
-  if(upDown)
+
+  if(spaceDown && bulletDelay >= 0.1f)
     {
-      spaceShipID->velocity.y += -100;
-    }
-  if(downDown)
-    {
-      spaceShipID->velocity.y += 100;
+      bulletDelay = 0.0f;
+      Entity *newBullet = new AABB(player->position+ vec2d(0,-8),vec2d(3,3),vec2d(0,-300),bulletSprite);
+      entities.push_back(newBullet);
     }
 
 }
 
-int bullet = 0;
-float angle = 0.0f;
-
 void Game::update(float dt)
 {
 
-  angle += 1000000000000000*M_PI * dt;
-
-  entities.push_back(new Entity(
-			      vec2d(250,250),
-			      vec2d(100*sinf(angle),100*cosf(angle)),bullet));
+  bulletDelay += dt;;
 
   std::vector<Entity *> newEntities;
   for(int i = 0; i < entities.size(); ++i)
@@ -180,12 +200,12 @@ void Game::render()
 void Game::run()
 {
 
-  int spriteSheet = gameWindow.load_texture("test.png");
-  int spaceShip = gameWindow.create_sprite(spriteSheet,0,0,60,20);
-  bullet = gameWindow.create_sprite(spriteSheet,60,5,15,15);
+  int spriteSheet = gameWindow.load_texture("sprite_sheet.png");
+  int redPlayer = gameWindow.create_sprite(spriteSheet,0,0,20,20);
+  bulletSprite = gameWindow.create_sprite(spriteSheet,0,80,6,6);
 
-  entities.push_back(new AABB(vec2d(250,250),vec2d(30,10),vec2d(0,0),spaceShip));
-  spaceShipID = entities[entities.size()-1];
+  player = new Player(vec2d(250,450),vec2d(10,10),6,redPlayer);
+  entities.push_back(player);
 
   while(!gameOver)
     {

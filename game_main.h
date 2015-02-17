@@ -30,10 +30,21 @@ class AABB : public Entity
  public:
 
   vec2d dimensions;
-  bool check_in_bounds(int screenWidth, int screenHeight);
+  virtual bool check_in_bounds(int screenWidth, int screenHeight);
   AABB(vec2d position, vec2d dimensions, vec2d velocity, int sprite);
 
 };
+
+class Player : public AABB
+{
+ public:
+
+  int hitRadius;
+  virtual bool check_in_bounds(int screenWidth, int screenHeight);
+  Player(vec2d position, vec2d dimensions, int hitRadius, int sprite);
+};
+
+
 
 class Game
 {
@@ -46,8 +57,6 @@ class Game
   void handle_input();
   void update(float dt);
   void render();
-
-  SDL_Event event;
   
  public:
 
