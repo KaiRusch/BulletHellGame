@@ -6,9 +6,6 @@
 #include <SDL.h>
 #include <vector>
 
-#define QUIT_GAME 1
-#define LEFT_DOWN 2
-
 class Entity
 {
  public:
@@ -30,10 +27,10 @@ class Quadtree
 {
  private:
 
-  float x;
-  float y;
-  float w;
-  float h;
+  float _x;
+  float _y;
+  float _w;
+  float _h;
 
   Quadtree *northEast;
   Quadtree *northWest;
@@ -51,6 +48,7 @@ class Quadtree
   Quadtree(float x, float y, float w, float h);
   ~Quadtree();
   void insert(Entity *element);
+  std::vector<Entity *> get_in_range(float x, float y, float w, float h);
 
 };
 

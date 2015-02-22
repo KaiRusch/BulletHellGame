@@ -1,5 +1,4 @@
 #include "game_main.h"
-
 /*Entity::Entity(vec2d position)
 {
   this->position = position;
@@ -49,17 +48,18 @@ bool Entity::check_in_bounds(float x, float y, float w, float h)
 
 Quadtree::Quadtree(float x, float y, float w, float h)
 {
-  this->maxCapacity = 5;
+  maxCapacity = 5;
+  
+  northEast = NULL;
+  northWest = NULL;
+  southEast = NULL;
+  southWest = NULL;
 
-  this->northEast = NULL;
-  this->northWest = NULL;
-  this->southEast = NULL;
-  this->southWest = NULL;
+  _x = x;
+  _y = y;
+  _w = w;
+  _h = h;
 
-  this->x = x;
-  this->y = y;
-  this->w = w;
-  this->h = h;
 }
 
 Quadtree::~Quadtree()
@@ -72,15 +72,15 @@ Quadtree::~Quadtree()
 
 void Quadtree::subdivide()
 {
-  this->northEast = new Quadtree(x+w/2.0f,y,w/2.0f,h/2.0f);
-  this->northWest = new Quadtree(x,y,w/2.0f,h/2.0f);  
-  this->southEast = new Quadtree(x+w/2.0f,y+h/2.0f,w/2.0f,h/2.0f);
-  this->southWest = new Quadtree(x,y+h/2.0f,w/2.0f,h/2.0f);
+  this->northEast = new Quadtree(_x+_w/2.0f,_y,_w/2.0f,_h/2.0f);
+  this->northWest = new Quadtree(_x,_y,_w/2.0f,_h/2.0f);  
+  this->southEast = new Quadtree(_x+_w/2.0f,_y+_h/2.0f,_w/2.0f,_h/2.0f);
+  this->southWest = new Quadtree(_x,_y+_h/2.0f,_w/2.0f,_h/2.0f);
 }
 
 void Quadtree::insert(Entity *element)
 {
-  if(element->check_in_bounds(x,y,w,h))
+  if(element->check_in_bounds(_x,_y,_w,_h))
     {
       if(contents.size() < maxCapacity)
 	{
@@ -101,6 +101,62 @@ void Quadtree::insert(Entity *element)
     }
 }
 
+bool rect_intersect(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2)
+{
+  if(x1 + w1 < x2)
+    {
+      return false;
+    }
+  if(x1 > x2 + w2)
+    {
+      return false;
+    }
+  if(y1 + h1 < y2)
+    {
+      return false;
+    }
+  if(y1 > y2 + h2)
+    {
+      return false;
+    }
+
+  return true;
+}
+
+std::vector<Entity *> Quadtree::get_in_range(float x, float y, float w, float h)
+{
+  std::vector<Entity *> inRange;
+
+  if(!rect_intersect(_x,_y,_w,_h,x,y,w,h))
+    {
+      return inRange;
+    }
+
+  for(int i = 0; i < contents.size(); ++i)
+    {
+      if(contents[i]->check_in_bounds(x,y,w,h))
+	{
+	  inRange.push_back(contents[i]);
+	}
+    }
+
+  if(northEast == NULL)
+    {
+      return inRange;
+    }
+
+  std::vector<Entity *> northEastInRange = northEast->get_in_range(x,y,w,h);
+  inRange.insert(inRange.end(),northEastInRange.begin(),northEastInRange.end());
+  std::vector<Entity *> northWestInRange = northWest->get_in_range(x,y,w,h);
+  inRange.insert(inRange.end(),northWestInRange.begin(),northWestInRange.end());
+  std::vector<Entity *> southEastInRange = southEast->get_in_range(x,y,w,h);
+  inRange.insert(inRange.end(),southEastInRange.begin(),southEastInRange.end());
+  std::vector<Entity *> southWestInRange = southWest->get_in_range(x,y,w,h);
+  inRange.insert(inRange.end(),southWestInRange.begin(),southWestInRange.end());
+
+  return inRange;
+}
+
 AABB::AABB(vec2d position, vec2d dimensions, vec2d velocity, int sprite) : Entity(position,velocity,sprite)
 {
   this->dimensions = dimensions;
@@ -108,7 +164,7 @@ AABB::AABB(vec2d position, vec2d dimensions, vec2d velocity, int sprite) : Entit
 
 bool AABB::check_in_bounds(float x, float y, float w, float h)
 {
-  if(position.x + dimensions.x < 0)
+  if(position.x + dimensions.x < x)
     {
       return false;
     }
@@ -116,7 +172,7 @@ bool AABB::check_in_bounds(float x, float y, float w, float h)
     {
       return false;
     }
-  if(position.y + dimensions.y < 0)
+  if(position.y + dimensions.y < y)
     {
       return false;
     }
@@ -141,13 +197,6 @@ Game::Game()
   gameWindow.init("The Quest Fork", 500, 500);
   gameOver = false;
 }
-
-
-
-Entity *player = NULL;
-int bulletSprite;
-float angle = 0.0f;
-float delay = 0.0f;
 
 //----------------GAME LOOP------------------
 
@@ -181,30 +230,50 @@ void Game::handle_input()
     }
 }
 
+int bulletSprite = 0;
+float angle = 0.0f;
+float delay = 0.0f;
+
 void Game::update(float dt)
 {
-
-  
-  angle+= M_PI*dt;
+  angle += 6*M_PI*dt;
   delay += dt;
 
-  if(delay > 0.2f)
+  if(delay > 0.01f)
     {
-  gameEntities.push_back(new AABB(vec2d(250,250),vec2d(5,5),vec2d(100*sinf(angle),100*cosf(angle)),bulletSprite));
+      gameEntities.push_back
+	(new AABB(vec2d(250,250),
+		  vec2d(2.5f,2.5f),
+		  vec2d(100*cosf(angle),100*sinf(angle)),
+		  bulletSprite));
+      gameEntities.push_back
+	(new AABB(vec2d(250,250),
+		  vec2d(2.5f,2.5f),
+		  vec2d(100*cosf(angle + M_PI/2),100*sinf(angle + M_PI/2)),
+		  bulletSprite));
+      gameEntities.push_back
+	(new AABB(vec2d(250,250),
+		  vec2d(2.5f,2.5f),
+		  vec2d(100*cosf(angle + M_PI),100*sinf(angle + M_PI)),
+		  bulletSprite));
+      gameEntities.push_back
+	(new AABB(vec2d(250,250),
+		  vec2d(2.5f,2.5f),
+		  vec2d(100*cosf(angle + 3*M_PI/2),100*sinf(angle + 3*M_PI/2)),
+		  bulletSprite));
+      
+
+      delay = 0.0f;
     }
+  
 
   delete(quadtree);
   quadtree = new Quadtree(0,0,500,500);
-  
-
   for(int i = 0; i < gameEntities.size(); ++i)
     {
       gameEntities[i]->update(dt);
       quadtree->insert(gameEntities[i]);
     }
-
-  
-
 }
 
 void Game::render()
@@ -212,9 +281,11 @@ void Game::render()
   gameWindow.render_clear();
   for(int i = 0; i < gameEntities.size(); ++i)
     {
-      Entity *entity = gameEntities[i];
-      gameWindow.render_sprite(entity->sprite,entity->position.x,entity->position.y);
+      gameWindow.render_sprite(gameEntities[i]->sprite,
+			       gameEntities[i]->position.x,
+			       gameEntities[i]->position.y);
     }
+
   gameWindow.render_present();
 }
 
