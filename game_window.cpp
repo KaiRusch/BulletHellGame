@@ -1,4 +1,4 @@
-#include "game_window.h"
+#include "game_window.hpp"
 
 void GameWindow::init(const char* windowTitle, int windowWidth, int windowHeight)
 {

@@ -1,7 +1,4 @@
-#include "game_main.h"
-
-#define SCREEN_WIDTH 500
-#define SCREEN_HEIGHT 500
+#include "game_main.hpp"
 
 int main(int argc, char **argv)
 {

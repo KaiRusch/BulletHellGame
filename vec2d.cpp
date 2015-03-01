@@ -1,4 +1,4 @@
-#include "vec2d.h"
+#include "vec2d.hpp"
 
 
 //Returns the sum of two vectors
