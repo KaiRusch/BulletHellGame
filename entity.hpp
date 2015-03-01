@@ -6,15 +6,13 @@
 
 class Entity
 {
-protected:
+
+public:
 
   vec2d position;
   vec2d velocity;
   vec2d dimensions;
   int sprite;
-
- public:
-
   bool destroy;
   int type;
 
