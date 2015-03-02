@@ -1,52 +1,12 @@
 #ifndef GAME_MAIN_H
 #define GAME_MAIN_H
 
+#include "animation.hpp"
 #include "game_window.hpp"
 #include "vec2d.hpp"
 #include "quadtree.hpp"
 #include "entity.hpp"
 #include <vector>
-
-class Animation
-{
-public:
-
-  std::vector<int> frames;
-  bool playing;
-  float speed;
-  float delay;
-  int currentFrameIndex;
-
-  Animation(std::vector<int> frames, float speed) : frames(frames), playing(false), speed(speed), delay(0.0f), currentFrameIndex(0)
-  {
-  };
-  
-  void start()
-  {
-    playing = true;
-  };
-  
-  int update(float dt)
-  {
-    if(playing)
-      {
-	delay += dt;
-	if(delay >= speed)
-	  {
-	    currentFrameIndex++;
-	    delay = 0.0f;
-	  }
-      }
-
-    if(currentFrameIndex == frames.size())
-      {
-	return -1;
-      }
-
-     return frames[currentFrameIndex];
-
-  };
-};
 
 class KeyboardState
 {
@@ -89,10 +49,11 @@ class Bullet : public Entity
 
 public:
 
+  float radius;
   int allegiance;
   int damage;
 
-  Bullet(vec2d position, vec2d dimensions, vec2d velocity, int sprite, int damage, int allegiance);
+  Bullet(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite, int damage, int allegiance);
 };
 
 class Pickup : public Entity
@@ -102,9 +63,10 @@ protected:
 
 public:
 
+  float radius;
   int pickupType;
 
-  Pickup(vec2d position, vec2d dimensions, vec2d velocity, int sprite, int pickupType);
+  Pickup(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite, int pickupType);
 };
 
 class Spaceship : public Entity
@@ -116,10 +78,11 @@ protected:
   
 public:
 
+  float radius;
   int allegiance;
   int health;
 
-  Spaceship(vec2d position, vec2d dimensions, vec2d velocity, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities);
+  Spaceship(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities);
 
   virtual void check_collisions(Quadtree *quadtree);
 
@@ -135,12 +98,19 @@ protected:
 
 public:
 
-  Player(vec2d position, vec2d dimensions, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities);
+  Player(vec2d position, vec2d dimensions, float radius, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities);
 
   void handle_input(KeyboardState *keyboardState);
   void update(float dt);
   void check_collisions(Quadtree *quadtree);
   void keep_in_screen(float x, float y, float w, float h);
+
+};
+
+class PinkEnemy
+{
+public:
+  
 
 };
 

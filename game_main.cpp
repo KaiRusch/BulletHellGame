@@ -1,7 +1,7 @@
 #include "game_main.hpp"
 
 
-Entity::Entity(vec2d position, vec2d dimensions, vec2d velocity, int sprite) : position(position), dimensions(dimensions), velocity(velocity), sprite(sprite), destroy(false), type(ENTITY)
+Entity::Entity(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite) : position(position), dimensions(dimensions), radius(radius), velocity(velocity), sprite(sprite), destroy(false), type(ENTITY)
 {
 }
 void Entity::render(GameWindow *gameWindow)
@@ -35,17 +35,17 @@ bool Entity::check_in_bounds(float x, float y, float w, float h)
   return true;  
 }
 
-Bullet::Bullet(vec2d position, vec2d dimensions, vec2d velocity, int sprite, int damage, int allegiance) : Entity(position,dimensions,velocity,sprite), damage(damage), allegiance(allegiance)
+Bullet::Bullet(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite, int damage, int allegiance) : Entity(position,dimensions,radius,velocity,sprite), damage(damage), allegiance(allegiance)
 {
   this->type = this->type | BULLET;
 }
 
-Pickup::Pickup(vec2d position, vec2d dimensions, vec2d velocity, int sprite, int pickupType) : Entity(position,dimensions,velocity,sprite), pickupType(pickupType)
+Pickup::Pickup(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite, int pickupType) : Entity(position,dimensions,radius,velocity,sprite), pickupType(pickupType)
 {
   this->type = this->type | PICKUP;
 }
 
-Spaceship::Spaceship(vec2d position, vec2d dimensions, vec2d velocity, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities) : Entity(position,dimensions,velocity,sprite), health(health), allegiance(allegiance), gameEntities(gameEntities)
+Spaceship::Spaceship(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities) : Entity(position,dimensions,radius,velocity,sprite), health(health), allegiance(allegiance), gameEntities(gameEntities)
 {
   this->type = this->type | SPACESHIP;
 }
@@ -65,7 +65,6 @@ void Spaceship::check_collisions(Quadtree *quadtree)
 	      Bullet *bullet = (Bullet*) inRange[i];
 	      if(bullet->allegiance != allegiance)
 		{
-		  destroy = true;
 		  bullet->destroy = true;
 		}
 	    }
@@ -73,7 +72,7 @@ void Spaceship::check_collisions(Quadtree *quadtree)
     }
 }
 
-Player::Player(vec2d position, vec2d dimensions, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities) : Spaceship(position,dimensions,vec2d(0.0f,0.0f),sprite,health,allegiance,gameEntities), delay(0.0f), firingMode(SINGLE_FIRE)
+Player::Player(vec2d position, vec2d dimensions, float radius, int sprite, int health, int allegiance, std::vector<Entity *> *gameEntities) : Spaceship(position,dimensions,radius,vec2d(0.0f,0.0f),sprite,health,allegiance,gameEntities), delay(0.0f), firingMode(SINGLE_FIRE)
 {
   this->type = this->type | PLAYER;
 }
@@ -106,6 +105,7 @@ void Player::handle_input(KeyboardState *keyboardState)
 	{
 	  Bullet *bullet = new Bullet(position + vec2d(0.0f,-10.0f),
 				      vec2d(2.5f,2.5f),
+				      2.5f,
 				      vec2d(0.0f,-250.0f),bulletSprite,
 				      1, GOOD);
 	  gameEntities->push_back(bullet);
@@ -115,10 +115,12 @@ void Player::handle_input(KeyboardState *keyboardState)
 	{
 	  Bullet *bullet1 = new Bullet(position + vec2d(20.0f,0.0f),
 				       vec2d(2.5f,2.5f),
+				       2.5f,
 				       vec2d(0.0f,-250.0f),bulletSprite,
 				       1, GOOD);
 	  Bullet *bullet2 = new Bullet(position + vec2d(-20.0f,0.0f),
 				       vec2d(2.5f,2.5f),
+				       2.5f,
 				       vec2d(0.0f,-250.0f),bulletSprite,
 				       1, GOOD);
 	  gameEntities->push_back(bullet1);
@@ -142,7 +144,8 @@ void Player::check_collisions(Quadtree *quadtree)
 
   for(int i = 0; i < inRange.size(); ++i)
     {
-      if((inRange[i]->position - position).length() <= 20.0f 
+      if((inRange[i]->position - position).length() 
+	 <= this->radius + inRange[i]->radius 
 	 && inRange[i] != this)
 	{
 	  if((inRange[i]->type & BULLET) == BULLET)
@@ -312,31 +315,7 @@ void Game::render()
 void Game::run()
 {
   int spriteSheet = gameWindow.load_texture("sprite_sheet.png");
-  int spaceshipSprite = gameWindow.create_sprite(spriteSheet,0,0,60,20);
-  int enemySprite = gameWindow.create_sprite(spriteSheet,60,5,15,15);
-  int tripleFireSprite = gameWindow.create_sprite(spriteSheet,162,0,12,12);
-  bulletSprite = gameWindow.create_sprite(spriteSheet,60,0,5,5);
 
-  Player *player = new Player(vec2d(250.0f,450.0f),vec2d(30.0f,10.0f),
-			      spaceshipSprite, 1, GOOD, &gameEntities);
-
-  gameEntities.push_back(player);
-
-  Spaceship *enemy = new Spaceship(vec2d(250.0f,50.0f),
-				   vec2d(7.5f,7.5f),
-				   vec2d(0.0f,0.0f),
-				   enemySprite, 1, 
-				   EVIL, &gameEntities);
-
-  gameEntities.push_back(enemy);
-
-  Pickup *pickup = new Pickup(vec2d(250.0f,0.0f),
-			      vec2d(6.0f,6.0f),
-			      vec2d(0.0f,100.0f),
-			      tripleFireSprite,
-			      TRIPLE);
-
-  gameEntities.push_back(pickup);
 
   while(!gameOver)
     {

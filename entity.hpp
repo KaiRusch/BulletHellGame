@@ -12,6 +12,7 @@ public:
   vec2d position;
   vec2d velocity;
   vec2d dimensions;
+  float radius;
   int sprite;
   bool destroy;
   int type;
@@ -20,7 +21,7 @@ public:
   virtual void render(GameWindow *gameWindow);  
   virtual bool check_in_bounds(float x, float y, float w, float h);
 
-  Entity(vec2d position, vec2d dimensions, vec2d velocity, int sprite);
+  Entity(vec2d position, vec2d dimensions, float radius, vec2d velocity, int sprite);
 
 };
 
